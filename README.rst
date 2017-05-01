@@ -1,6 +1,8 @@
 python-craigslist
 =================
 
+Note: Updated to include min_bedrooms, max_bedrooms, min_bathrooms, max_bathrooms filter for the CraigslistHousing module.
+
 A simple `Craigslist <http://www.craigslist.org>`__ wrapper.
 
 License: `MIT-Zero <https://romanrm.net/mit-zero>`__.
@@ -36,6 +38,33 @@ Subclasses:
 * ``CraigslistGigs`` (craigslist.org > gigs)
 * ``CraigslistResumes`` (craigslist.org > resumes)
 
+<<<<<<< HEAD
+=======
+Usage
+-----
+
+Every subclass has its own set of filters. To get a list of all the filters
+supported by a specific subclass, use the ``.show_filters()`` class-method:
+
+.. code:: python
+
+   >>> from craigslist import CraigslistJobs
+   >>> CraigslistJobs.show_filters()
+
+   Base filters:
+   * posted_today = True/False
+   * query = ...
+   * search_titles = True/False
+   * has_image = True/False
+   Section specific filters:
+   * is_internship = True/False
+   * is_telecommuting = True/False
+   * is_contract = True/False
+   * is_parttime = True/False
+   * is_nonprofit = True/False
+   * employment_type = u'full-time', u'part-time', u'contract', u"employee's choice"
+
+>>>>>>> Update readme to reflect changes
 Examples
 --------
 
