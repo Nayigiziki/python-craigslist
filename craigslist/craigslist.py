@@ -189,24 +189,99 @@ class CraigslistHousing(CraigslistBase):
         'no_broker_fee': {'url_key': 'broker_fee', 'value': 1},
     }
 
-    def customize_result(self, result):
-        for attr in result.get('attrs', []):
-            attr_lower = attr.lower()
-            # Get bedrooms and bathrooms.
-            if attr_lower.endswith('br') or attr_lower.endswith('ba'):
-                for elem in attr_lower.split(' / '):
-                    if elem.endswith('br'):
-                        # Don't convert to int, too risky
-                        result['bedrooms'] = elem[:-2]
-                    elif elem.endswith('ba'):
-                        # Don't convert to int, too risky
-                        result['bathrooms'] = elem[:-2]
-            # Get area.
-            elif attr_lower.endswith('ft2') or attr_lower.endswith('m2'):
-                result['area'] = attr_lower
-            # Get availability.
-            elif attr_lower.startswith('available '):
-                result['available'] = attr[10:]
+# <<<<<<< Updated upstream
+#     def customize_result(self, result):
+#         for attr in result.get('attrs', []):
+#             attr_lower = attr.lower()
+#             # Get bedrooms and bathrooms.
+#             if attr_lower.endswith('br') or attr_lower.endswith('ba'):
+#                 for elem in attr_lower.split(' / '):
+#                     if elem.endswith('br'):
+#                         # Don't convert to int, too risky
+#                         result['bedrooms'] = elem[:-2]
+#                     elif elem.endswith('ba'):
+#                         # Don't convert to int, too risky
+#                         result['bathrooms'] = elem[:-2]
+#             # Get area.
+#             elif attr_lower.endswith('ft2') or attr_lower.endswith('m2'):
+#                 result['area'] = attr_lower
+#             # Get availability.
+#             elif attr_lower.startswith('available '):
+#                 result['available'] = attr[10:]
+# =======
+    def customize_result(self, result, html_row):
+        """
+        Add custom/delete/alter fields to result.
+        Get # bedrooms, baths, sqft, available date, list of amenities
+        """
+        response = requests_get(result['url'], logger=self.logger)
+        self.logger.info('GET %s', response.url)
+        self.logger.info('Response code: %s', response.status_code)
+
+        if response.ok:
+            soup = BeautifulSoup(response.content, 'html.parser')
+
+            # Get the bedrooms baths sqft badges
+            try:
+                badges = soup.find('p', {'class': 'attrgroup'}).get_text()
+            except AttributeError:
+                # raise AttributeError('Unable to find correct html elements in page (p tag with class "attrgroup")')
+                num_br = 'Unknown'
+                num_ba = 'Unknown'
+                sq_ft = 'Unknown'
+
+            if badges:
+                try:
+                    num_br = re.search(r'(?P<num_br>\d+)BR', badges).group('num_br')
+                except:
+                    num_br = 'Unknown'
+
+                try:
+                    num_ba = re.search(r'(?P<num_ba>[0-9]+\.?[0-9]*)Ba', badges).group('num_ba')
+                except:
+                    num_ba = 'Unknown'
+
+                try:
+                    sq_ft = re.search(r'(?P<sqft>\d+)ft2', badges).group('sqft')
+                except:
+                    sq_ft = 'Unknown'
+
+            # get available date
+            try:
+                available_date = soup.find('span', {'class': 'property_date'})['data-date']
+            except:
+                available_date = 'Unknown'
+
+            #get listed amenities
+            try:
+                attr_groups = soup.find_all('p', {'class': 'attrgroup'})
+                # if there is a "search for other listings" tag, we need to look at the 2nd instance of attrgroup, otherwise, look at the first
+                if attr_groups[1].find('span').has_attr('class'):
+                    amenities = attr_groups[2].get_text(" | ", strip=True)
+                else:
+                    amenities = attr_groups[1].get_text(" | ", strip=True)
+            except:
+                amenities = 'Unknown'
+
+            # append info to the result
+            # custom_result = {
+            #                 'bedrooms': num_br,
+            #                 'bathrooms': num_ba,
+            #                 'sq_ft': sq_ft,
+            #                 'amenities': amenities,
+            #                 'available_date': available_date
+            #             }
+            
+            result['bedrooms'] = num_br
+            result['bathrooms'] = num_ba
+            result['sq_ft'] = sq_ft
+            result['amenities'] = amenities
+            result['available_date'] = available_date
+
+
+        #and return to the caller
+        return result
+
 
 
 class CraigslistJobs(CraigslistBase):
